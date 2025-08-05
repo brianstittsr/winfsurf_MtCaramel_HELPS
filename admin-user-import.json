@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "localId": "admin-user-1754425494103",
+      "email": "admin@mtcaramelhelps.com",
+      "emailVerified": true,
+      "passwordHash": "admin123",
+      "displayName": "admin",
+      "createdAt": "2025-08-05T20:24:54.101Z",
+      "lastLoginAt": "2025-08-05T20:24:54.101Z",
+      "customAttributes": "{\"role\":\"admin\"}"
+    }
+  ]
+}

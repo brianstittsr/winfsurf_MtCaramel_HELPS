@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -21,8 +22,16 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
       <div className="container">
-        <Link href="/" className="navbar-brand">
-          Mt. Caramel H.E.L.P.S.
+        <Link href="/" className="navbar-brand d-flex align-items-center">
+          <Image 
+            src="/logo.avif" 
+            alt="Mt. Caramel H.E.L.P.S. Logo" 
+            width={40} 
+            height={40} 
+            className="me-2"
+            priority
+          />
+          <span className="fw-bold">Mt. Caramel H.E.L.P.S.</span>
         </Link>
         
         <button 
