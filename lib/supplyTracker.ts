@@ -35,6 +35,9 @@ export interface SupplyPickup {
 // Supply Items Management
 export const addSupplyItem = async (item: Omit<SupplyItem, 'id'>) => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const docRef = await addDoc(collection(db, 'supply_items'), item);
     return docRef.id;
   } catch (error) {
@@ -44,6 +47,9 @@ export const addSupplyItem = async (item: Omit<SupplyItem, 'id'>) => {
 
 export const getSupplyItems = async (): Promise<SupplyItem[]> => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const querySnapshot = await getDocs(collection(db, 'supply_items'));
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -56,6 +62,9 @@ export const getSupplyItems = async (): Promise<SupplyItem[]> => {
 
 export const updateSupplyItemQuantity = async (itemId: string, newQuantity: number) => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const itemRef = doc(db, 'supply_items', itemId);
     await updateDoc(itemRef, { available_quantity: newQuantity });
   } catch (error) {
@@ -69,6 +78,9 @@ export const submitSupplyPickup = async (
   signatureBlob: Blob
 ) => {
   try {
+    if (!db || !storage) {
+      throw new Error('Firebase not initialized');
+    }
     // Upload signature to Firebase Storage
     const signatureRef = ref(storage, `signatures/${Date.now()}_signature.png`);
     await uploadBytes(signatureRef, signatureBlob);
@@ -99,6 +111,9 @@ export const submitSupplyPickup = async (
 
 export const getSupplyPickups = async (userId?: string): Promise<SupplyPickup[]> => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     let q;
     if (userId) {
       q = query(

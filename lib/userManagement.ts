@@ -4,17 +4,22 @@ import {
   doc, 
   updateDoc, 
   query, 
-  orderBy 
+  orderBy,
+  Timestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserRole, UserData } from './auth';
 
-export interface UserWithId extends UserData {
+export interface UserWithId extends Omit<UserData, 'createdAt'> {
   id: string;
+  createdAt: Timestamp | Date;
 }
 
 export const getAllUsers = async (): Promise<UserWithId[]> => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
@@ -28,6 +33,9 @@ export const getAllUsers = async (): Promise<UserWithId[]> => {
 
 export const updateUserRole = async (userId: string, newRole: UserRole) => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, { role: newRole });
   } catch (error) {

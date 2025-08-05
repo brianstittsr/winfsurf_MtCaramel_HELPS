@@ -160,7 +160,7 @@ export default function Admin() {
                               {user.role.replace('_', ' ').toUpperCase()}
                             </span>
                           </td>
-                          <td>{user.createdAt.toDate().toLocaleDateString()}</td>
+                          <td>{user.createdAt instanceof Date ? user.createdAt.toLocaleDateString() : user.createdAt.toDate().toLocaleDateString()}</td>
                           <td>
                             <div className="dropdown">
                               <button

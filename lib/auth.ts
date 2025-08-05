@@ -18,6 +18,9 @@ export interface UserData {
 
 export const signUp = async (email: string, password: string, role: UserRole = 'client') => {
   try {
+    if (!auth || !db) {
+      throw new Error('Firebase not initialized');
+    }
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
@@ -37,6 +40,9 @@ export const signUp = async (email: string, password: string, role: UserRole = '
 
 export const signIn = async (email: string, password: string) => {
   try {
+    if (!auth) {
+      throw new Error('Firebase not initialized');
+    }
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
   } catch (error) {
@@ -46,6 +52,9 @@ export const signIn = async (email: string, password: string) => {
 
 export const signOut = async () => {
   try {
+    if (!auth) {
+      throw new Error('Firebase not initialized');
+    }
     await firebaseSignOut(auth);
   } catch (error) {
     throw error;
@@ -54,6 +63,9 @@ export const signOut = async () => {
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (userDoc.exists()) {
       return userDoc.data() as UserData;
@@ -67,6 +79,9 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
 
 export const updateUserRole = async (uid: string, newRole: UserRole) => {
   try {
+    if (!db) {
+      throw new Error('Firebase not initialized');
+    }
     await setDoc(doc(db, 'users', uid), { role: newRole }, { merge: true });
   } catch (error) {
     throw error;
