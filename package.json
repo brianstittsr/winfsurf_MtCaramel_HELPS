@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "firebase:deploy": "firebase deploy",
+    "firebase:rules": "firebase deploy --only firestore:rules,storage",
+    "firebase:init-db": "npx ts-node scripts/initializeDatabase.ts",
+    "setup:firebase": "npm run firebase:rules && npm run firebase:init-db"
   },
   "dependencies": {
     "next": "14.0.0",
@@ -22,6 +26,7 @@
   "devDependencies": {
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ts-node": "^10.9.0"
   }
 }

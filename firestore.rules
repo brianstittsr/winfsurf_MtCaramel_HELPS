@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to get user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && getUserRole() == 'admin';
+    }
+    
+    // Helper function to check if user is power user or admin
+    function isPowerUserOrAdmin() {
+      return request.auth != null && getUserRole() in ['power_user', 'admin'];
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read and write their own document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Power users and admins can read all user documents
+      allow read: if isPowerUserOrAdmin();
+      
+      // Only admins can update other users' roles
+      allow write: if isAdmin();
+    }
+    
+    // Supply items collection
+    match /supply_items/{itemId} {
+      // All authenticated users can read supply items
+      allow read: if request.auth != null;
+      
+      // Only power users and admins can create, update, or delete supply items
+      allow write: if isPowerUserOrAdmin();
+    }
+    
+    // Supply pickups collection
+    match /supply_pickups/{pickupId} {
+      // Users can read and write their own pickup records
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.issued_by == request.auth.uid);
+      
+      // Power users and admins can read and write all pickup records
+      allow read, write: if isPowerUserOrAdmin();
+    }
+  }
+}
