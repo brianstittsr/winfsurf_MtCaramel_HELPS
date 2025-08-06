@@ -13,6 +13,30 @@ import {
   SupplyPickup 
 } from '@/lib/supplyTracker';
 
+// Static list of school supply items
+const STATIC_SUPPLY_ITEMS = [
+  { id: 'notebooks', name: 'Notebooks', unit: 'individual', available_quantity: 100 },
+  { id: 'pencils', name: 'Pencils', unit: 'box', available_quantity: 50 },
+  { id: 'pens', name: 'Pens', unit: 'box', available_quantity: 30 },
+  { id: 'erasers', name: 'Erasers', unit: 'individual', available_quantity: 75 },
+  { id: 'rulers', name: 'Rulers', unit: 'individual', available_quantity: 40 },
+  { id: 'glue-sticks', name: 'Glue Sticks', unit: 'individual', available_quantity: 60 },
+  { id: 'colored-pencils', name: 'Colored Pencils', unit: 'box', available_quantity: 25 },
+  { id: 'markers', name: 'Markers', unit: 'box', available_quantity: 20 },
+  { id: 'copy-paper', name: 'Copy Paper', unit: 'ream', available_quantity: 15 },
+  { id: 'folders', name: 'Folders', unit: 'individual', available_quantity: 80 },
+  { id: 'binders', name: 'Binders', unit: 'individual', available_quantity: 35 },
+  { id: 'highlighters', name: 'Highlighters', unit: 'individual', available_quantity: 45 },
+  { id: 'scissors', name: 'Scissors', unit: 'individual', available_quantity: 30 },
+  { id: 'staplers', name: 'Staplers', unit: 'individual', available_quantity: 20 },
+  { id: 'staples', name: 'Staples', unit: 'box', available_quantity: 40 },
+  { id: 'index-cards', name: 'Index Cards', unit: 'pack', available_quantity: 50 },
+  { id: 'sticky-notes', name: 'Sticky Notes', unit: 'pack', available_quantity: 60 },
+  { id: 'calculators', name: 'Calculators', unit: 'individual', available_quantity: 25 },
+  { id: 'backpacks', name: 'Backpacks', unit: 'individual', available_quantity: 40 },
+  { id: 'lunch-boxes', name: 'Lunch Boxes', unit: 'individual', available_quantity: 30 },
+];
+
 export default function SupplyTracker() {
   const { user, userData } = useAuth();
   const signaturePadRef = useRef<SignaturePadRef>(null);
@@ -22,6 +46,14 @@ export default function SupplyTracker() {
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('');
+  
+  // Supply items list for the current request
+  const [requestedItems, setRequestedItems] = useState<Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+  }>>([]);
   
   // Data state
   const [supplyItems, setSupplyItems] = useState<SupplyItem[]>([]);
@@ -66,10 +98,58 @@ export default function SupplyTracker() {
 
   const handleItemChange = (itemId: string) => {
     setSelectedItem(itemId);
-    const item = supplyItems.find(i => i.id === itemId);
+    // Use static items first, fallback to dynamic items
+    const item = STATIC_SUPPLY_ITEMS.find(i => i.id === itemId) || supplyItems.find(i => i.id === itemId);
     if (item) {
       setUnit(item.unit);
     }
+  };
+
+  const addItemToRequest = () => {
+    if (!selectedItem || quantity <= 0) return;
+    
+    // Use static items first, fallback to dynamic items
+    const item = STATIC_SUPPLY_ITEMS.find(i => i.id === selectedItem) || supplyItems.find(i => i.id === selectedItem);
+    if (!item) return;
+    
+    // Check if item already exists in the request
+    const existingItemIndex = requestedItems.findIndex(ri => ri.id === selectedItem);
+    
+    if (existingItemIndex >= 0) {
+      // Update existing item quantity
+      const updatedItems = [...requestedItems];
+      updatedItems[existingItemIndex].quantity += quantity;
+      setRequestedItems(updatedItems);
+    } else {
+      // Add new item to request
+      const newItem = {
+        id: selectedItem,
+        name: item.name,
+        quantity: quantity,
+        unit: unit
+      };
+      setRequestedItems([...requestedItems, newItem]);
+    }
+    
+    // Reset form fields
+    setSelectedItem('');
+    setQuantity(1);
+    setUnit('');
+  };
+
+  const removeItemFromRequest = (itemId: string) => {
+    setRequestedItems(requestedItems.filter(item => item.id !== itemId));
+  };
+
+  const updateItemQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeItemFromRequest(itemId);
+      return;
+    }
+    
+    setRequestedItems(requestedItems.map(item => 
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    ));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,46 +168,56 @@ export default function SupplyTracker() {
         return;
       }
 
-      // Get selected item details
-      const item = supplyItems.find(i => i.id === selectedItem);
-      if (!item) {
-        setError('Please select a valid supply item');
+      // Validate that there are items in the request
+      if (requestedItems.length === 0) {
+        setError('Please add at least one supply item to your request');
         setSubmitting(false);
         return;
       }
 
-      // Check if enough quantity is available
-      if (quantity > item.available_quantity) {
-        setError(`Not enough ${item.name} available. Current stock: ${item.available_quantity}`);
-        setSubmitting(false);
-        return;
+      // Validate availability for all requested items
+      for (const requestedItem of requestedItems) {
+        const item = supplyItems.find(i => i.id === requestedItem.id);
+        if (!item) {
+          setError(`Supply item '${requestedItem.name}' is no longer available`);
+          setSubmitting(false);
+          return;
+        }
+        if (requestedItem.quantity > item.available_quantity) {
+          setError(`Not enough ${item.name} available. Requested: ${requestedItem.quantity}, Available: ${item.available_quantity}`);
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Get signature blob
       const signatureBlob = await signaturePadRef.current.toBlob();
 
-      // Submit pickup
-      const pickupData = {
-        org_name: orgName,
-        supply_item_id: selectedItem,
-        supply_item_name: item.name,
-        quantity: quantity,
-        unit: unit,
-        issued_by: user.uid,
-        issued_by_email: user.email || '',
-        signature_url: '', // This will be set in submitSupplyPickup
-      };
+      // Submit pickup for each item (this could be optimized to submit as a batch)
+      for (const requestedItem of requestedItems) {
+        const pickupData = {
+          org_name: orgName,
+          supply_item_id: requestedItem.id,
+          supply_item_name: requestedItem.name,
+          quantity: requestedItem.quantity,
+          unit: requestedItem.unit,
+          issued_by: user.uid,
+          issued_by_email: user.email || '',
+          signature_url: '', // This will be set in submitSupplyPickup
+        };
 
-      await submitSupplyPickup(pickupData, signatureBlob);
+        await submitSupplyPickup(pickupData, signatureBlob);
+      }
 
       // Reset form
       setOrgName('');
       setSelectedItem('');
       setQuantity(1);
       setUnit('');
+      setRequestedItems([]);
       signaturePadRef.current.clear();
 
-      setSuccess('Supply pickup submitted successfully!');
+      setSuccess(`Supply pickup submitted successfully! ${requestedItems.length} item(s) processed.`);
       
       // Reload data
       await loadData();
@@ -240,95 +330,171 @@ export default function SupplyTracker() {
                           {/* Organization Name */}
                           <div className="mb-4">
                             <label htmlFor="orgName" className="form-label fw-semibold">
-                              <i className="bi bi-building me-2 text-primary"></i>
                               Organization Name
                               <span className="text-danger">*</span>
                             </label>
                             <input
                               type="text"
-                              className="form-control form-control-lg border-2"
+                              className="form-control form-control-lg"
                               id="orgName"
                               value={orgName}
                               onChange={(e) => setOrgName(e.target.value)}
-                              placeholder="Enter your organization or school name"
+                              placeholder="Enter organization name"
                               required
                             />
-                            <div className="form-text">
-                              <i className="bi bi-info-circle me-1"></i>
-                              Please provide the full name of your organization
-                            </div>
                           </div>
 
-                          {/* Supply Item Selection */}
+                          {/* Supply Items Management */}
                           <div className="mb-4">
-                            <label htmlFor="supplyItem" className="form-label fw-semibold">
-                              <i className="bi bi-person-backpack me-2 text-primary"></i>
-                              Supply Item
-                              <span className="text-danger">*</span>
-                            </label>
-                            <select
-                              className="form-select form-select-lg border-2"
-                              id="supplyItem"
-                              value={selectedItem}
-                              onChange={(e) => handleItemChange(e.target.value)}
-                              required
-                            >
-                              <option value="">🔍 Select a supply item...</option>
-                              {supplyItems.map(item => (
-                                <option key={item.id} value={item.id}>
-                                  📦 {item.name} (Available: {item.available_quantity} {item.unit})
-                                </option>
-                              ))}
-                            </select>
-                            <div className="form-text">
-                              <i className="bi bi-info-circle me-1"></i>
-                              Choose from available school supplies
+                            <h5 className="fw-bold text-primary mb-3">
+                              <i className="bi bi-person-backpack me-2"></i>
+                              Supply Items Request
+                            </h5>
+                            
+                            {/* Add Item Section */}
+                            <div className="card border-primary border-2 mb-4">
+                              <div className="card-header bg-primary bg-opacity-10">
+                                <h6 className="mb-0 fw-semibold text-white">
+                                  <i className="bi bi-plus-circle me-2"></i>
+                                  Add Supply Item
+                                </h6>
+                              </div>
+                              <div className="card-body">
+                                <div className="row g-3">
+                                  <div className="col-md-5">
+                                    <label htmlFor="supplyItem" className="form-label fw-semibold">
+                                      Supply Item <span className="text-danger">*</span>
+                                    </label>
+                                    <select
+                                      className="form-select border-2"
+                                      id="supplyItem"
+                                      value={selectedItem}
+                                      onChange={(e) => handleItemChange(e.target.value)}
+                                    >
+                                      <option value="">🔍 Select a supply item...</option>
+                                      {STATIC_SUPPLY_ITEMS.map(item => (
+                                        <option key={item.id} value={item.id}>
+                                          📦 {item.name} (Available: {item.available_quantity} {item.unit})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <label htmlFor="quantity" className="form-label fw-semibold">
+                                      Quantity <span className="text-danger">*</span>
+                                    </label>
+                                    <input
+                                      type="number"
+                                      className="form-control border-2"
+                                      id="quantity"
+                                      value={quantity}
+                                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                      min="1"
+                                      placeholder="Qty"
+                                    />
+                                  </div>
+                                  <div className="col-md-2">
+                                    <label htmlFor="unit" className="form-label fw-semibold">
+                                      Unit
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control border-2 bg-light"
+                                      id="unit"
+                                      value={unit}
+                                      placeholder="Unit"
+                                      readOnly
+                                    />
+                                  </div>
+                                  <div className="col-md-2 d-flex align-items-end">
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary w-100"
+                                      onClick={addItemToRequest}
+                                      disabled={!selectedItem || quantity <= 0}
+                                    >
+                                      <i className="bi bi-plus-lg me-1"></i>
+                                      Add
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Quantity and Unit Row */}
-                          <div className="row g-3 mb-4">
-                            <div className="col-md-6">
-                              <label htmlFor="quantity" className="form-label fw-semibold">
-                                <i className="bi bi-123 me-2 text-primary"></i>
-                                Quantity
-                                <span className="text-danger">*</span>
-                              </label>
-                              <div className="input-group input-group-lg">
-                                <span className="input-group-text bg-light border-2">
-                                  <i className="bi bi-hash"></i>
-                                </span>
-                                <input
-                                  type="number"
-                                  className="form-control border-2"
-                                  id="quantity"
-                                  value={quantity}
-                                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                  min="1"
-                                  placeholder="Enter quantity"
-                                  required
-                                />
+                            {/* Requested Items List */}
+                            {requestedItems.length > 0 && (
+                              <div className="card border-success border-2">
+                                <div className="card-header bg-success bg-opacity-10">
+                                  <h6 className="mb-0 fw-semibold text-success">
+                                    <i className="bi bi-list-check me-2"></i>
+                                    Requested Items ({requestedItems.length})
+                                  </h6>
+                                </div>
+                                <div className="card-body p-0">
+                                  <div className="table-responsive">
+                                    <table className="table table-hover mb-0">
+                                      <thead className="bg-light">
+                                        <tr>
+                                          <th className="fw-semibold">Item</th>
+                                          <th className="fw-semibold text-center">Quantity</th>
+                                          <th className="fw-semibold">Unit</th>
+                                          <th className="fw-semibold text-center">Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {requestedItems.map((item, index) => (
+                                          <tr key={item.id}>
+                                            <td className="fw-medium">
+                                              <i className="bi bi-box-seam me-2 text-primary"></i>
+                                              {item.name}
+                                            </td>
+                                            <td className="text-center">
+                                              <div className="d-flex align-items-center justify-content-center">
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-outline-secondary btn-sm me-2"
+                                                  onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                                                >
+                                                  <i className="bi bi-dash"></i>
+                                                </button>
+                                                <span className="fw-bold text-primary px-3">{item.quantity}</span>
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-outline-secondary btn-sm ms-2"
+                                                  onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                                >
+                                                  <i className="bi bi-plus"></i>
+                                                </button>
+                                              </div>
+                                            </td>
+                                            <td>
+                                              <span className="badge bg-secondary">{item.unit}</span>
+                                            </td>
+                                            <td className="text-center">
+                                              <button
+                                                type="button"
+                                                className="btn btn-outline-danger btn-sm"
+                                                onClick={() => removeItemFromRequest(item.id)}
+                                                title="Remove item"
+                                              >
+                                                <i className="bi bi-trash"></i>
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="col-md-6">
-                              <label htmlFor="unit" className="form-label fw-semibold">
-                                <i className="bi bi-rulers me-2 text-primary"></i>
-                                Unit of Measurement
-                              </label>
-                              <div className="input-group input-group-lg">
-                                <span className="input-group-text bg-light border-2">
-                                  <i className="bi bi-tag"></i>
-                                </span>
-                                <input
-                                  type="text"
-                                  className="form-control border-2 bg-light"
-                                  id="unit"
-                                  value={unit}
-                                  placeholder="Unit will auto-fill"
-                                  readOnly
-                                />
+                            )}
+
+                            {requestedItems.length === 0 && (
+                              <div className="alert alert-info d-flex align-items-center">
+                                <i className="bi bi-info-circle me-2"></i>
+                                <div>No items added yet. Use the form above to add supply items to your request.</div>
                               </div>
-                            </div>
+                            )}
                           </div>
 
                           {/* Signature Section */}

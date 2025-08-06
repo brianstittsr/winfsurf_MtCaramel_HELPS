@@ -38,7 +38,7 @@ export default function SignIn() {
             <div className="text-center text-white p-5">
               <div className="mb-4">
                 <Image 
-                  src="/logo.avif" 
+                  src="/logo.png" 
                   alt="Mt. Caramel H.E.L.P.S. Logo" 
                   width={120} 
                   height={120} 
@@ -82,7 +82,7 @@ export default function SignIn() {
               {/* Mobile Logo */}
               <div className="text-center mb-4 d-lg-none">
                 <Image 
-                  src="/logo.avif" 
+                  src="/logo.png" 
                   alt="Mt. Caramel H.E.L.P.S. Logo" 
                   width={80} 
                   height={80} 

@@ -24,16 +24,6 @@ export default function Home() {
         <div className="container">
           <div className="row align-items-center min-vh-75">
             <div className="col-lg-8">
-              <div className="mb-4">
-                <Image 
-                  src="/logo.avif" 
-                  alt="Mount Carmel HELPS Logo" 
-                  width={180} 
-                  height={180} 
-                  className="mb-3"
-                  priority
-                />
-              </div>
               <h1 className="display-3 fw-bold text-white mb-4">
                 Mount Carmel HELPS Inc.
               </h1>
@@ -258,7 +248,7 @@ export default function Home() {
                 <div className="col-md-6 mb-4">
                   <h5 className="fw-bold mb-3">
                     <Image 
-                      src="/logo.avif" 
+                      src="/logo.png" 
                       alt="Mount Carmel HELPS Logo" 
                       width={40} 
                       height={40} 

@@ -24,10 +24,10 @@ const Navbar = () => {
       <div className="container">
         <Link href="/" className="navbar-brand d-flex align-items-center">
           <Image 
-            src="/logo.avif" 
+            src="/logo.png" 
             alt="Mt. Caramel H.E.L.P.S. Logo" 
-            width={40} 
-            height={40} 
+            width={150} 
+            height={150} 
             className="me-2"
             priority
           />

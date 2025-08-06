@@ -14,7 +14,7 @@ try {
     projectId: 'mtcaramelhelps',
   });
 } catch (error) {
-  console.log('Firebase Admin already initialized or error:', error.message);
+  console.log('Firebase Admin already initialized or error:', error instanceof Error ? error.message : String(error));
 }
 
 const auth = admin.auth();
@@ -53,7 +53,7 @@ async function createAdminUser() {
     console.log(`👑 Role: admin`);
     
   } catch (error) {
-    if (error.code === 'auth/email-already-exists') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'auth/email-already-exists') {
       console.log('⚠️  Admin user already exists with this email address');
     } else {
       console.error('❌ Error creating admin user:', error);

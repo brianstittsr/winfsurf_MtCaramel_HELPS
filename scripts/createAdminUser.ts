@@ -14,10 +14,10 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const firebaseAuth = getAuth(app);
+const firebaseDb = getFirestore(app);
 
-async function createAdminUser() {
+async function createAdminUserBasic() {
   try {
     console.log('🔐 Creating admin user...');
     
@@ -26,13 +26,13 @@ async function createAdminUser() {
     const username = 'admin';
     
     // Create user in Firebase Authentication
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     const user = userCredential.user;
     
     console.log(`✅ Created Firebase Auth user with UID: ${user.uid}`);
     
     // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(firebaseDb, 'users', user.uid), {
       uid: user.uid,
       email: user.email,
       username: username,
@@ -56,12 +56,12 @@ async function createAdminUser() {
   }
 }
 
-async function main() {
+async function mainBasic() {
   try {
     console.log('🚀 Starting admin user creation for Mt. Caramel H.E.L.P.S...');
     console.log(`📍 Project ID: ${firebaseConfig.projectId}`);
     
-    await createAdminUser();
+    await createAdminUserBasic();
     
     console.log('✅ Admin user creation completed successfully!');
     console.log('\n📋 Login credentials:');
@@ -76,4 +76,4 @@ async function main() {
 }
 
 // Run the script
-main();
+mainBasic();
